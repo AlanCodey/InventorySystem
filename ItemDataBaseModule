@@ -1,0 +1,60 @@
+local Items = {
+
+    Apple = {
+        Id = "Apple",
+        Name = "Apple",
+        Description = "Restores health.",
+        Icon = "rbxassetid://0",
+        Category = "Consumable",
+        Rarity = "Common",
+        MaxStack = 20,
+        Value = 5,
+    },
+
+    Wood = {
+        Id = "Wood",
+        Name = "Wood",
+        Description = "Basic crafting material.",
+        Icon = "rbxassetid://0",
+        Category = "Material",
+        Rarity = "Common",
+        MaxStack = 99,
+        Value = 2,
+    },
+
+    Iron = {
+        Id = "Iron",
+        Name = "Iron",
+        Description = "Useful metal.",
+        Icon = "rbxassetid://0",
+        Category = "Material",
+        Rarity = "Uncommon",
+        MaxStack = 99,
+        Value = 10,
+    },
+
+    Sword = {
+        Id = "Sword",
+        Name = "Iron Sword",
+        Description = "A sharp blade.",
+        Icon = "rbxassetid://0",
+        Category = "Weapon",
+        Rarity = "Rare",
+        MaxStack = 1,
+        Value = 150,
+    },
+
+    Potion = {
+        Id = "Potion",
+        Name = "Health Potion",
+        Description = "Restores HP.",
+        Icon = "rbxassetid://0",
+        Category = "Consumable",
+        Rarity = "Epic",
+        MaxStack = 10,
+        Value = 75,
+    }
+
+}
+
+return Items
