@@ -1,0 +1,285 @@
+local Players = game:GetService("Players")
+
+local InventoryService = {}
+
+InventoryService.MaxSlots = 48
+InventoryService.Inventories = {}
+
+local function DeepCopy(tbl)
+	local copy = {}
+
+	for k,v in pairs(tbl) do
+		if typeof(v) == "table" then
+			copy[k] = DeepCopy(v)
+		else
+			copy[k] = v
+		end
+	end
+
+	return copy
+end
+
+function InventoryService:CreateInventory(player)
+	local inventory = {}
+
+	for i = 1,self.MaxSlots do
+		inventory[i] = nil
+	end
+
+	self.Inventories[player] = inventory
+
+	return inventory
+end
+
+function InventoryService:GetInventory(player)
+	return self.Inventories[player]
+end
+
+function InventoryService:GetSlot(player,slot)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return nil
+	end
+
+	return inventory[slot]
+end
+
+function InventoryService:SetSlot(player,slot,data)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return
+	end
+
+	inventory[slot] = data
+end
+
+function InventoryService:FindEmptySlot(player)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return nil
+	end
+
+	for slot,item in ipairs(inventory) do
+		if item == nil then
+			return slot
+		end
+	end
+
+	return nil
+end
+
+function InventoryService:FindStack(player,itemId,maxStack)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return nil
+	end
+
+	for slot,item in ipairs(inventory) do
+		if item and item.Id == itemId and item.Amount < maxStack then
+			return slot
+		end
+	end
+
+	return nil
+end
+
+function InventoryService:AddItem(player,itemId,amount,maxStack)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return false
+	end
+
+	amount = amount or 1
+	maxStack = maxStack or 99
+
+	while amount > 0 do
+
+		local stack = self:FindStack(player,itemId,maxStack)
+
+		if stack then
+
+			local item = inventory[stack]
+
+			local space = maxStack - item.Amount
+
+			local give = math.min(space,amount)
+
+			item.Amount += give
+
+			amount -= give
+
+		else
+
+			local slot = self:FindEmptySlot(player)
+
+			if not slot then
+				return false
+			end
+
+			local give = math.min(maxStack,amount)
+
+			inventory[slot] = {
+				Id = itemId,
+				Amount = give
+			}
+
+			amount -= give
+
+		end
+
+	end
+
+	return true
+end
+
+function InventoryService:RemoveItem(player,itemId,amount)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return false
+	end
+
+	amount = amount or 1
+
+	for slot,item in ipairs(inventory) do
+
+		if item and item.Id == itemId then
+
+			if item.Amount > amount then
+
+				item.Amount -= amount
+
+				return true
+
+			else
+
+				amount -= item.Amount
+
+				inventory[slot] = nil
+
+				if amount <= 0 then
+					return true
+				end
+
+			end
+
+		end
+
+	end
+
+	return false
+end
+
+function InventoryService:MoveSlot(player,fromSlot,toSlot)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return
+	end
+
+	inventory[fromSlot],inventory[toSlot] = inventory[toSlot],inventory[fromSlot]
+end
+
+function InventoryService:SplitStack(player,slot,amount)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return false
+	end
+
+	local item = inventory[slot]
+
+	if not item then
+		return false
+	end
+
+	if item.Amount <= amount then
+		return false
+	end
+
+	local empty = self:FindEmptySlot(player)
+
+	if not empty then
+		return false
+	end
+
+	item.Amount -= amount
+
+	inventory[empty] = {
+		Id = item.Id,
+		Amount = amount
+	}
+
+	return true
+end
+
+function InventoryService:MergeStacks(player,slotA,slotB,maxStack)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return false
+	end
+
+	local a = inventory[slotA]
+	local b = inventory[slotB]
+
+	if not a or not b then
+		return false
+	end
+
+	if a.Id ~= b.Id then
+		return false
+	end
+
+	maxStack = maxStack or 99
+
+	local space = maxStack - a.Amount
+
+	if space <= 0 then
+		return false
+	end
+
+	local move = math.min(space,b.Amount)
+
+	a.Amount += move
+	b.Amount -= move
+
+	if b.Amount <= 0 then
+		inventory[slotB] = nil
+	end
+
+	return true
+end
+
+function InventoryService:ClearInventory(player)
+	self.Inventories[player] = self:CreateInventory(player)
+end
+
+function InventoryService:Serialize(player)
+	local inventory = self:GetInventory(player)
+
+	if not inventory then
+		return {}
+	end
+
+	return DeepCopy(inventory)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	InventoryService:CreateInventory(player)
+
+	InventoryService:AddItem(player,"Apple",5,20)
+	InventoryService:AddItem(player,"Sword",1,1)
+	InventoryService:AddItem(player,"Wood",50,99)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	InventoryService.Inventories[player] = nil
+end)
+
+return InventoryService
